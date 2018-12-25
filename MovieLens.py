@@ -108,9 +108,12 @@ class Movie():
 
     def __init__(self, movie_id):
         self.id = movie_id
+        self.name = Movie.df[Movie.df["movie_id"]==self.id].iloc[0,3]
     
     def get(self):
         return df[df["movie_id"]==self.id]
+    
+
     
     def get_tags(self, minimum=0.5):
         tag_score = pd.read_csv(valid_tag_score_file)
@@ -119,11 +122,18 @@ class Movie():
         self_score_df = tag_score[ (tag_score["movie_id"]==self.id) &  (tag_score["relevance"]>=minimum)].sort_values(by="relevance", ascending=False)
         self_score_df["tag_name"] = self_score_df["tag_id"].apply(lambda x: Tag.get_name(x))
         return self_score_df
+    
+    def get_tag_score(self, minimum=0.5):
+        tag_score = pd.read_csv(valid_tag_score_file)
+        score_df = tag_score[(tag_score["movie_id"]==self.id) & (tag_score["relevance"]>0.5)]
+        return score_df
 
 
 class Tag():
     tag_dict = pd.read_csv(valid_tag_file)
-
+    tag_score_df = pd.read_csv(valid_tag_file)
 
     def get_name(tag_id):
         return Tag.tag_dict[Tag.tag_dict["tag_id"]==tag_id].iloc[0,1]
+    
+
