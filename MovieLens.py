@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 from tqdm import tqdm
+import pickson
+from array import array
 
 cwd = os.getcwd()
 data_folder = cwd + "/data/"
@@ -37,7 +39,7 @@ class DataValidation():
         new_digits = str(0)*missing_digit + str(value)
         imdb_id_str = "tt{}".format(new_digits)
         return imdb_id_str
-    
+
     def tmdb_id_int_form(value):
         try:
             return int(float(value))
@@ -95,7 +97,7 @@ class DataValidation():
         df["tag_id"] = df["tagId"]
         ndf = df[["movie_id", "tag_id", "relevance"]]
         ndf.to_csv(valid_tag_score_file,  index=False)
-    
+
     def create_valid_tags():
         df = pd.read_csv(gtags_file)
         df["tag_id"] = df["tagId"]
@@ -109,12 +111,12 @@ class Movie():
     def __init__(self, movie_id):
         self.id = movie_id
         self.name = Movie.df[Movie.df["movie_id"]==self.id].iloc[0,3]
-    
+
     def get(self):
         return df[df["movie_id"]==self.id]
-    
 
-    
+
+
     def get_tags(self, minimum=0.5):
         tag_score = pd.read_csv(valid_tag_score_file)
         tag_dict = pd.read_csv(valid_tag_file)
@@ -122,7 +124,7 @@ class Movie():
         self_score_df = tag_score[ (tag_score["movie_id"]==self.id) &  (tag_score["relevance"]>=minimum)].sort_values(by="relevance", ascending=False)
         self_score_df["tag_name"] = self_score_df["tag_id"].apply(lambda x: Tag.get_name(x))
         return self_score_df
-    
+
     def get_tag_score(self, minimum=0.5):
         tag_score = pd.read_csv(valid_tag_score_file)
         score_df = tag_score[(tag_score["movie_id"]==self.id) & (tag_score["relevance"]>0.5)]
@@ -135,5 +137,36 @@ class Tag():
 
     def get_name(tag_id):
         return Tag.tag_dict[Tag.tag_dict["tag_id"]==tag_id].iloc[0,1]
-    
 
+
+
+############################################################################
+f5000 = "/home/jb/Documents/Data/UM-Matrix/f5000.pickle"
+# CREATE BIG USER MOVIE MATRIX
+d = pickson.get_msgpack("/home/jb/Documents/Data/dummy_list_dict.msgpack")
+
+indices = []
+list_dict = []
+movie_id_set = set()
+
+for i in tqdm(d):
+    ratings = i.get("ratings")
+    index = i.get("user_id")
+
+    indices.append(index)
+    list_dict.append(ratings)
+    movie_id_set.update(list(ratings.keys()))
+
+
+
+
+
+
+big_m = pd.DataFrame(columns=movie_id_set)
+#for i in tqdm(range(100)):
+for i in tqdm(range(len(indices))):
+    udf = pd.DataFrame(list_dict[i], index=[indices[i]])
+    big_m = big_m.append(udf)
+big_m = big_m.fillna(0)
+big_m = big_m.values
+pickson.save_pickle("big_m,/home/jb/Documents/Data/user_movie_matrice_f5000.pickle" )
