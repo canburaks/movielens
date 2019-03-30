@@ -5,22 +5,23 @@ from tqdm import tqdm
 import pickson
 from array import array
 
+os.chdir('/home/jb/Projects/Github/movielens')
 
 pd.set_option('display.max_columns', 800)
 pd.set_option('display.max_rows', 800)
 
-movie_file = "/home/jb/Projects/Github/MyRecSys/movielens/rawdata/movies.csv"
-rating_file = "/home/jb/Projects/Github/MyRecSys/movielens/rawdata/ratings.csv"
-tags_file = "/home/jb/Projects/Github/MyRecSys/movielens/rawdata/tags.csv"
-gscore_file = "/home/jb/Projects/Github/MyRecSys/movielens/rawdata/genome-scores.csv"
-gtags_file = "/home/jb/Projects/Github/MyRecSys/movielens/rawdata/genome-tags.csv"
-link_file = "/home/jb/Projects/Github/MyRecSys/movielens/rawdata/links.csv"
+movie_file = "/home/jb/Projects/Github/movielens/rawdata/movies.csv"
+rating_file = "/home/jb/Projects/Github/movielens/rawdata/ratings.csv"
+tags_file = "/home/jb/Projects/Github/movielens/rawdata/tags.csv"
+gscore_file = "/home/jb/Projects/Github/movielens/rawdata/genome-scores.csv"
+gtags_file = "/home/jb/Projects/Github/movielens/rawdata/genome-tags.csv"
+link_file = "/home/jb/Projects/Github/movielens/rawdata/links.csv"
 
 #Validated Data files save path
-valid_movie_file = "/home/jb/Projects/Github/MyRecSys/movielens/data/vmovies.csv"
-valid_rating_file = "/home/jb/Projects/Github/MyRecSys/movielens/data/vratings.csv"
-valid_tag_file = "/home/jb/Projects/Github/MyRecSys/movielens/data/vtags.csv"
-valid_tag_score_file = "/home/jb/Projects/Github/MyRecSys/movielens/data/vtagscore.csv"
+valid_movie_file = "/home/jb/Projects/Github/movielens/data/vmovies.csv"
+valid_rating_file = "/home/jb/Projects/Github/movielens/data/vratings.csv"
+valid_tag_file = "/home/jb/Projects/Github/movielens/data/vtags.csv"
+valid_tag_score_file = "/home/jb/Projects/Github/movielens/data/vtagscore.csv"
 
 
 class DataValidation():
@@ -107,41 +108,9 @@ class DataValidation():
         ndf.to_csv(valid_tag_file,  index=False)
 
 ################################################################################################
-class MovieManager():
-    def __init__(self, movie_csv_path):
-        self.df = pd.read_csv(movie_csv_path)
-    
-    def get_by_id(self, movie_id):
-        return self.df[self.df["movie_id"]==movie_id]
-    
-    def filter_by_movie_id(self, movie_id_list):
-        return self.df[self.df["movie_id"].isin(movie_id_list)]
-    
-
-class TagInfoManager():
-    def __init__(self, csv_path):
-        self.df = pd.read_csv(csv_path)
-
-    def tag_id_set(self):
-        return self.df["tag_id"].tolist()
-    
-    def tag_name_set(self):
-        return self.df["tag_name"].tolist()
 
 
-class TagScoreManager():
-    def __init__(self, tag_score_csv_path):
-        self.df = pd.read_csv(tag_score_csv_path)
-
-    def filter_by_movie_id(self, movie_id_list):
-        return self.df[self.df["movie_id"].isin(movie_id_list)]
-
-    def filter_by_tag_id(self, tag_id_list):
-        return self.df[self.df["tag_id"].isin(tag_id_list)]
-    
-    def filter_by_movie_and_tag(self, movie_id_list, tag_id_list):
-        return self.df[self.df["movie_id"].isin(movie_id_list) & self.df["tag_id"].isin(tag_id_list)]
-
+from managers import MovieManager, TagInfoManager, TagScoreManager
 
 Movies = MovieManager(valid_movie_file)
 TagScore = TagScoreManager(valid_tag_score_file)
@@ -155,7 +124,7 @@ filtered_tag_id_list = TagInfo.tag_id_set()
 #tag name list
 filtered_tag_name_list = TagInfo.tag_name_set()
 #movie id list
-filtered_movie_id_list = pickson.get_pickle("/home/jb/Projects/Github/MyRecSys/data/pickle/imdb250_movie_id_list.pickle")
+filtered_movie_id_list = pickson.get_pickle("/home/jb/Projects/Github/movielens/filtered-data/movie-id-lists/movie_id_list.pickle")
 
 #--------Dataframes------------------>
 #movie dataframe with id, name and year
