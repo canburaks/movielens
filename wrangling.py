@@ -116,7 +116,7 @@ Movies = MovieManager(valid_movie_file)
 TagScore = TagScoreManager(valid_tag_score_file)
 
 #---------------Change filtered path---------------------------------------------------> 
-TagInfo = TagInfoManager("/home/jb/Projects/Github/MyRecSys/movielens/filtered-data/filtered_tags1.csv")
+TagInfo = TagInfoManager("/home/jb/Projects/Github/movielens/filtered-data/mini_tags.csv")
 
 #--------Lists------------------>
 #tag id list
@@ -147,5 +147,119 @@ table= pd.pivot_table(merged, values="relevance", index=["movie_id", "name"], co
 
 
 ndf = pd.merge(filtered_movie_df[["movie_id","name", "year"]], table, on="movie_id", how="inner" )
-ndf.to_csv("/home/jb/Projects/Github/MyRecSys/movielens/filtered-data/filtered_tags_imdb250_score.csv", index=False)
+ndf = ndf.round(2)
+ndf.to_csv("/home/jb/Projects/Github/movielens/filtered-data/mini_tags_df.csv", index=False)
+
 ndf.head()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#################################################################################
+#FOR AWS DB
+from tqdm import tqdm
+def get_pickle(file_dir, compress=False):
+    import _pickle as pickle
+    if compress:
+        import bz2
+        with bz2.BZ2File(file_dir, "r") as f:
+            file = pickle.load(f)
+        return file
+    with open(file_dir, "rb") as f:
+        file = pickle.load(f)
+    return file
+
+
+def get_json(file_dir):
+    import json
+    with open(file_dir, "r") as f:
+        file = json.load(f)
+    return file
+
+def save_json(file, file_dir):
+    import json
+    with open(file_dir, "w") as f:
+        json.dump(file, f)
+    print("Saved to:'{}'".format(file_dir))
+
+filtered_movie_id_list = get_pickle("/home/jb/Projects/Github/movielens/filtered-data/movie-id-lists/movie_id_list.pickle")
+
+m = Movie.objects.get(id=2571)
+
+def get_movie_data(movie_id_list, save_path):
+    qs = Movie.objects.filter(id__in=movie_id_list).only("imdb_rating", "data")
+    great_dict = {}
+    for m in tqdm(qs):
+        md = {}
+        if m.imdb_rating:
+            md["imdb_rating"] = float(m.imdb_rating)
+        else:
+            md["imdb_rating"] = 0
+        md["movie_id"] = m.id
+        md["name"] = m.name
+        md["year"] = m.year
+        if m.data.get("Runtime"):
+            #print("runtime", m.data.get("Runtime"))
+            rnt = m.data.get("Runtime").strip().split(" ")[0]
+            rnt = "".join(rnt.split(","))
+            md["runtime"] = int(rnt)
+        else:
+            md["runtime"] = 0
+        if m.data.get("imdbVotes"):
+            #print("imdb-votes", m.data.get("imdbVotes"))
+            md["imdb_votes"] = int(m.data.get("imdbVotes"))
+        else:
+            md["imdb_votes"] = 0
+        if m.data.get("Metascore"):
+            #print("metascore", m.data.get("Metascore"))
+            md["metascore"] = int(m.data.get("Metascore"))
+        else:
+            md["metascore"] = 0
+        cm = Crew.objects.filter(movie=m, job="d")
+        if cm.count()==1:
+            md["director_id"] =cm[0].person.id
+        elif cm.count()>=1:
+            md["director_id"] = "+".join([x.person.id for x in cm])
+        else:
+            md["director_id"] = "0"
+        great_dict[str(m.id)] = md
+    print("saving...")
+    save_json(great_dict, save_path)
+
+
+#get_movie_data(filtered_movie_id_list, "/home/jb/Projects/Github/movielens/filtered-data/movie-id-lists/movie-info-dict.json")
+import json
+movie_info = pickson.get_json("/home/jb/Projects/Github/movielens/filtered-data/movie-id-lists/movie-info-dict.json")
+movie_info_j = [x for x in movie_info.values()]
+movie_info_j = json.dumps(movie_info_j)
+
+mdf_j = pd.read_json(movie_info_j, orient="records")
+mdf_j = mdf_j[["movie_id", "name","year", "director_id", "imdb_rating", "imdb_votes"]]
+mdf_j.head()
+
+#DROP IF HAVE ZERO
+df = mdf_j[["movie_id", "imdb_rating", "imdb_votes"]]
+df = df[(df != 0).all(1)]
+df = df[["movie_id", "imdb_rating", "imdb_votes"]]
+
+
+merge_big = pd.merge(ndf, df, on="movie_id", how="inner")
+old_cols = merge_big.columns
+first_cols = list(old_cols[:3])
+mid_cols = list(old_cols[-2:])
+last_cols = list(old_cols[3:-2])
+merge_big = merge_big[first_cols + mid_cols + last_cols]
+
+merge_big.to_csv("/home/jb/Projects/Github/movielens/filtered-data/mini-tag-movie-info.csv", index=False)
