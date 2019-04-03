@@ -110,3 +110,4 @@ venv.bak/
 *.msgpack
 *.xlsx
 *.
+*.json

@@ -27,6 +27,14 @@ class RatingManager():
     def filter_by_user_id(self, user_id_list):
         return self.df[self.df["user_id"].isin(user_id_list)]
 
+    def filter_by_user_ratings(self, min):
+        #user-quantity serie
+        uq = self.get_user_quantity_series()
+        #create list of user ids that satisfies minimum requiremend
+        valid_user_id_list = uq[uq["quantity"] >= 25]["quantity"].tolist()
+        return self.filter_by_user_id(valid_user_id_list)
+
+
     def transpose(df):
         return pd.pivot_table(df, index=["user_id"], columns=["movie_id"], values=["rating"])
 
@@ -111,6 +119,7 @@ um20kpath = "/home/jb/Projects/Github/movielens/filtered-data/ratings/user-movie
 um20k_ppath = "/home/jb/Projects/Github/movielens/filtered-data/ratings/user-movie-matrix-20k.pickle."
 
 RatingManager.create_user_movie_matrix(RM, 20000, um20kpath, fillna=True, values=True, type="csv")
+RatingManager.create_user_movie_matrix(RM, 30000, um20k_ppath, fillna=True, values=True, type="csv")
 
 #Save user_id and mean df
 #RM.create_user_mean_series("/home/jb/Projects/Github/movielens/filtered-data/ratings/user-mean.csv")
